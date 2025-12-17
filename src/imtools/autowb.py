@@ -2,8 +2,9 @@ from __future__ import annotations
 from typing import Tuple
 import numpy as np
 import cv2
+import logging
 
-def auto_wb(img: np.ndarray, strength: float = 0.5, max_shift: float = 15.0) -> Tuple[np.ndarray, float, float]:
+def autowb(img: np.ndarray, strength: float = 0.5, max_shift: float = 15.0) -> Tuple[np.ndarray, float, float]:
     """
     Pure function: auto white-balance an image (RGB).
     Returns corrected image and applied a,b shifts.
@@ -31,4 +32,30 @@ def auto_wb(img: np.ndarray, strength: float = 0.5, max_shift: float = 15.0) -> 
     corrected = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
     corrected = cv2.cvtColor(corrected, cv2.COLOR_BGR2RGB)
     return corrected, a_shift, b_shift
+
+
+def process_folder(src: Path, dst: Path, strength: float, max_shift: float) -> None:
+    """Batch process all JPG images in folder with per-image WB."""
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for fpath in sorted(src.glob("*.jpg")):
+        img = cv2.imread(str(fpath))
+        if img is None:
+            logging.warning(f"Skipping {fpath.name}: cannot read")
+            continue
+
+        # Convert BGR → RGB
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        try:
+            corrected, a_shift, b_shift = autowb(img_rgb, strength, max_shift)
+        except ValueError:
+            logging.warning(f"Skipping {fpath.name}: not enough midtones")
+            continue
+
+        # Save corrected image (RGB → BGR for cv2.imwrite)
+        corrected_bgr = cv2.cvtColor(corrected, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(str(dst / fpath.name), corrected_bgr)
+
+        logging.info(f"{fpath.name}: applied a={a_shift:.2f}, b={b_shift:.2f}")
 
