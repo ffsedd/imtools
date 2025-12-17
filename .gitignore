@@ -1,10 +1,39 @@
 # Python-generated files
 __pycache__/
-*.py[oc]
+*.py[co]
+*.pyo
+*.pyd
+
+# Distribution / packaging
 build/
 dist/
 wheels/
 *.egg-info
+*.egg
+*.manifest
+*.spec
 
 # Virtual environments
-.venv
+.venv/
+env/
+venv/
+
+# VSCode / IDE settings
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
