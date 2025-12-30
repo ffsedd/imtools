@@ -1,61 +1,108 @@
 from __future__ import annotations
-from typing import Tuple
-import numpy as np
-import cv2
-import logging
 
-def autowb(img: np.ndarray, strength: float = 0.5, max_shift: float = 15.0) -> Tuple[np.ndarray, float, float]:
+import logging
+from pathlib import Path
+from typing import Tuple
+
+import numpy as np
+from skimage import color, io
+
+from .models import RGBImageUInt8  # shape (H, W, 3), uint8
+
+
+def autowb(
+    img: RGBImageUInt8,
+    strength: float = 0.5,
+    max_shift: float = 15.0,
+) -> Tuple[RGBImageUInt8, float, float]:
     """
-    Pure function: auto white-balance an image (RGB).
-    Returns corrected image and applied a,b shifts.
+    Auto white-balance an RGB image using Lab midtone neutralization.
+
+    Parameters
+    ----------
+    img : uint8 RGB image, shape (H, W, 3)
+    strength : scaling of correction [0..1]
+    max_shift : clamp for a/b correction in Lab units
+
+    Returns
+    -------
+    corrected_img : uint8 RGB image
+    a_shift : applied shift in Lab a channel
+    b_shift : applied shift in Lab b channel
     """
     if img.dtype != np.uint8:
-        img = np.clip(img, 0, 255).astype(np.uint8)
+        raise TypeError("Expected uint8 RGB image")
 
-    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
-    L, a, b = lab[..., 0], lab[..., 1], lab[..., 2]
+    if img.ndim != 3 or img.shape[2] != 3:
+        raise ValueError("Expected RGB image with shape (H, W, 3)")
 
-    mask = (L > 20) & (L < 80)
+    # Convert RGB [0..255] → float [0..1]
+    rgb = img.astype(np.float32) / 255.0
+
+    # RGB → Lab
+    lab = color.rgb2lab(rgb)
+
+    L = lab[..., 0]
+    a = lab[..., 1]
+    b = lab[..., 2]
+
+    # Midtone mask (same semantics as your OpenCV version)
+    mask = (L > 20.0) & (L < 80.0)
     if np.count_nonzero(mask) < 1000:
         raise ValueError("Not enough valid pixels for WB estimation")
 
-    a_mean = float(a[mask].mean() - 128.0)
-    b_mean = float(b[mask].mean() - 128.0)
-    a_shift = np.clip(a_mean * strength, -max_shift, max_shift)
-    b_shift = np.clip(b_mean * strength, -max_shift, max_shift)
+    a_mean = float(a[mask].mean())
+    b_mean = float(b[mask].mean())
+
+    a_shift = float(np.clip(a_mean * strength, -max_shift, max_shift))
+    b_shift = float(np.clip(b_mean * strength, -max_shift, max_shift))
 
     lab[..., 1] -= a_shift
     lab[..., 2] -= b_shift
-    lab = np.clip(lab, 0, 255).astype(np.uint8)
 
-    corrected = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-    corrected = cv2.cvtColor(corrected, cv2.COLOR_BGR2RGB)
-    return corrected, a_shift, b_shift
+    # Lab → RGB
+    rgb_corr_lab = color.lab2rgb(lab)
+    rgb_corr_float = np.clip(rgb_corr_lab, 0.0, 1.0)
+    rgb_corr: RGBImageUInt8 = (rgb_corr_float * 255).astype(np.uint8)  # explicit cast
+    return rgb_corr, a_shift, b_shift
 
 
-def process_folder(src: Path, dst: Path, strength: float, max_shift: float) -> None:
-    """Batch process all JPG images in folder with per-image WB."""
+def process_folder(
+    src: Path,
+    dst: Path,
+    strength: float = 0.5,
+    max_shift: float = 15.0,
+) -> None:
+    """
+    Batch process all JPG images in a folder.
+    """
     dst.mkdir(parents=True, exist_ok=True)
 
     for fpath in sorted(src.glob("*.jpg")):
-        img = cv2.imread(str(fpath))
-        if img is None:
+        try:
+            img = io.imread(fpath)
+        except Exception:
             logging.warning(f"Skipping {fpath.name}: cannot read")
             continue
 
-        # Convert BGR → RGB
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if img.ndim != 3 or img.shape[2] != 3:
+            logging.warning(f"Skipping {fpath.name}: not RGB")
+            continue
 
         try:
-            corrected, a_shift, b_shift = autowb(img_rgb, strength, max_shift)
+            corrected, a_shift, b_shift = autowb(
+                img,
+                strength=strength,
+                max_shift=max_shift,
+            )
         except ValueError:
             logging.warning(f"Skipping {fpath.name}: not enough midtones")
             continue
 
-        # Save corrected image (RGB → BGR for cv2.imwrite)
-        corrected_bgr = cv2.cvtColor(corrected, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(str(dst / fpath.name), corrected_bgr)
-
-        logging.info(f"{fpath.name}: applied a={a_shift:.2f}, b={b_shift:.2f}")
-
+        io.imsave(dst / fpath.name, corrected)
+        logging.info(
+            "%s: applied a=%.2f, b=%.2f",
+            fpath.name,
+            a_shift,
+            b_shift,
+        )

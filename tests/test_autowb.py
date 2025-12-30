@@ -1,67 +1,84 @@
-import numpy as np
-import cv2
+from __future__ import annotations
+
 from pathlib import Path
-import pytest
-import logging
+
+import numpy as np
+from skimage import color, io
+from skimage.util import img_as_ubyte
+
 from imtools.autowb import autowb, process_folder
 
-def make_test_image(width=100, height=100, a_shift: float = 0.0, b_shift: float = 0.0) -> np.ndarray:
+
+def make_test_image(
+    width: int = 100,
+    height: int = 100,
+    a_shift: float = 0.0,
+    b_shift: float = 0.0,
+) -> np.ndarray:
     """
-    Create a gradient RGB image with midtones (L 30-70) and optional color tint.
-    a_shift, b_shift approximate LAB a/b changes, applied in RGB for testing.
+    Create a midtone RGB image with an optional Lab a/b tint.
+    Output is uint8 RGB.
     """
-    # Base gradient in RGB (all channels equal)
-    img = np.zeros((height, width, 3), dtype=np.uint8)
-    for i in range(3):
-        img[..., i] = np.linspace(30, 70, width, dtype=np.uint8)
+    # Neutral midtone gradient
+    x = np.linspace(0.3, 0.7, width, dtype=np.float32)
+    rgb = np.stack([x, x, x], axis=1)
+    rgb = np.tile(rgb[None, :, :], (height, 1, 1))
 
-    # Convert to BGR → LAB
-    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR).astype(np.float32)
-    lab = cv2.cvtColor(img_bgr.astype(np.uint8), cv2.COLOR_BGR2LAB).astype(np.float32)
+    # RGB → Lab
+    lab = color.rgb2lab(rgb)
 
-    # Apply a/b shifts
-    lab[..., 1] = np.clip(lab[..., 1] + a_shift, 0, 255)
-    lab[..., 2] = np.clip(lab[..., 2] + b_shift, 0, 255)
+    # Apply tint
+    lab[..., 1] += a_shift
+    lab[..., 2] += b_shift
 
-    # Convert back to RGB
-    img_bgr = cv2.cvtColor(lab.astype(np.uint8), cv2.COLOR_LAB2BGR)
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    return img_rgb
+    # Lab → RGB
+    rgb_tinted = color.lab2rgb(lab)
+    rgb_tinted = np.clip(rgb_tinted, 0.0, 1.0)
+
+    return img_as_ubyte(rgb_tinted)
+
 
 def test_autowb_basic():
     img = make_test_image()
+
     corrected, a_shift, b_shift = autowb(img)
-    assert isinstance(a_shift, float)
-    assert isinstance(b_shift, float)
+
     assert corrected.shape == img.shape
     assert corrected.dtype == np.uint8
+    assert isinstance(a_shift, float)
+    assert isinstance(b_shift, float)
+
+    # Neutral image should need almost no correction
+    assert abs(a_shift) < 1.0
+    assert abs(b_shift) < 1.0
+
 
 def test_autowb_tinted():
-    # Slightly bluish (negative b) and reddish (positive a)
-    img = make_test_image(a_shift=10, b_shift=-10)
-    corrected, a_shift, b_shift = autowb(img)
-    # Check that autowb returns a shift roughly opposite to the tint
-    assert a_shift * 10 > 0 or a_shift == 0  # some shift applied
-    assert b_shift * -10 > 0 or b_shift == 0
+    # Red + blue tint
+    img = make_test_image(a_shift=10.0, b_shift=-10.0)
 
-def test_process_folder(tmp_path):
-    # Create fake JPG images with tint
-    img1 = make_test_image(a_shift=5, b_shift=-5)
-    img2 = make_test_image(a_shift=-5, b_shift=5)
-    for i, img in enumerate([img1, img2], start=1):
-        path = tmp_path / f"img{i}.jpg"
-        cv2.imwrite(str(path), cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+    _, a_shift, b_shift = autowb(img)
+
+    # Correction should oppose the tint
+    assert a_shift > 0.0
+    assert b_shift < 0.0
+
+
+def test_process_folder(tmp_path: Path):
+    img1 = make_test_image(a_shift=5.0, b_shift=-5.0)
+    img2 = make_test_image(a_shift=-5.0, b_shift=5.0)
+
+    io.imsave(tmp_path / "img1.jpg", img1)
+    io.imsave(tmp_path / "img2.jpg", img2)
 
     dst = tmp_path / "out"
     process_folder(tmp_path, dst, strength=0.5, max_shift=10.0)
 
-    # Check that output files exist
-    out_files = list(dst.glob("*.jpg"))
+    out_files = sorted(dst.glob("*.jpg"))
     assert len(out_files) == 2
 
-    # Check that images are readable and have correct shape
-    for out_file in out_files:
-        out_img = cv2.imread(str(out_file))
-        assert out_img is not None
+    for fpath in out_files:
+        out_img = io.imread(fpath)
+        assert out_img.ndim == 3
         assert out_img.shape[2] == 3
-
+        assert out_img.dtype == np.uint8
