@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 autowb = "imtools.autowb_cli:main"
+croptoratio = "imtools.crop_to_ratio_cli:main"
 
 
 [build-system]
