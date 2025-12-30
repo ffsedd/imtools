@@ -2,7 +2,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from .autowb import process_folder
+from imtools.autowb import process_folder
 
 
 def parse_args():

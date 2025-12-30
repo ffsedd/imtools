@@ -11,11 +11,9 @@ dependencies = [
     "scikit-image>=0.25.2",
 ]
 
-
 [project.scripts]
-autowb = "imtools.autowb_cli:main"
-croptoratio = "imtools.crop_to_ratio_cli:main"
-
+autowb = "imtools.cli.autowb_cli:main"
+croptoratio = "imtools.cli.crop_to_ratio_cli:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -28,7 +26,6 @@ where = ["src"]
 dev = [
     "pytest>=9.0.2",
 ]
-
 
 [tool.mypy]
 ignore_missing_imports = false
