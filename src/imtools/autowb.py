@@ -77,8 +77,9 @@ def process_folder(
     Batch process all JPG images in a folder.
     """
     dst.mkdir(parents=True, exist_ok=True)
-
-    for fpath in sorted(src.glob("*.jpg")):
+    fpaths = sorted(src.glob("*.jpg"))
+    logging.info(f"Processing files {fpaths}")
+    for fpath in fpaths:
         try:
             img = io.imread(fpath)
         except Exception:
