@@ -13,8 +13,10 @@ dependencies = [
 
 [project.scripts]
 autowb = "imtools.cli.autowb_cli:main"
+autocontrast = "imtools.cli.autocontrast_cli:main"
 croptoratio = "imtools.cli.crop_to_ratio_cli:main"
 jpgshrink = "imtools.jpgshrink:main"
+
 
 [build-system]
 requires = ["setuptools>=61.0"]
