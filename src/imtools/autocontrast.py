@@ -110,6 +110,7 @@ def _make_backup(path: Path) -> Path:
 def process_folder(
     src: Path,
     dst: Path,
+    strength: float = 1.0,
     recursive: bool = False,
 ) -> int:
     """
@@ -144,7 +145,7 @@ def process_folder(
             if img.dtype != np.uint8:
                 img = (np.clip(img, 0, 255)).astype(np.uint8)
 
-            out = autocontrast(img)
+            out = autocontrast(img, gain=strength * 8.0)
 
             if same_folder:
                 backup = _make_backup(fpath)

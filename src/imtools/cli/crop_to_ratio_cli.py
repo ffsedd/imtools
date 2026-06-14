@@ -18,17 +18,20 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--out",
+        "-o",
         default="crop_out",
         help="Output folder (default: ./crop_out)",
     )
     p.add_argument(
         "--ratio",
+        "-r",
         type=float,
         default=1.25,
         help="Target width/height ratio (w/h)",
     )
     p.add_argument(
-        "--debug",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable debug logging",
     )
@@ -70,7 +73,7 @@ def main() -> None:
     args = parse_args()
 
     logging.basicConfig(
-        level=logging.DEBUG if args.debug else logging.INFO,
+        level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
     )
 

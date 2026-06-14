@@ -20,7 +20,9 @@ def parse_args() -> argparse.Namespace:
         default=Path("."),
         help="Input directory",
     )
-
+    parser.add_argument(
+        "-s", "--strength", type=float, default=1, help="Auto-contrast strength [0-1]"
+    )
     parser.add_argument(
         "-o",
         "--out",
@@ -66,7 +68,7 @@ def main() -> int:
     logging.info("Input : %s", src)
     logging.info("Output: %s", dst)
 
-    processed = process_folder(src, dst)
+    processed = process_folder(src, dst, strength=args.strength)
 
     logging.info("Processed %d image(s).", processed)
     return 0
