@@ -9,7 +9,7 @@ from imtools.autocontrast import process_folder
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Batch auto-contrast JPG images.",
+        description="Batch auto-contrast images.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -20,15 +20,42 @@ def parse_args() -> argparse.Namespace:
         default=Path("."),
         help="Input directory",
     )
-    parser.add_argument(
-        "-s", "--strength", type=float, default=1, help="Auto-contrast strength [0-1]"
-    )
+
     parser.add_argument(
         "-o",
         "--out",
         type=Path,
         default=Path("."),
-        help="Output directory. If identical to the source, originals are backed up as *.bak before being overwritten.",
+        help="Output directory (same as src = in-place with backups)",
+    )
+
+    parser.add_argument(
+        "-s",
+        "--strength",
+        type=float,
+        default=1.0,
+        help="Contrast strength multiplier (affects sigmoid gain)",
+    )
+
+    parser.add_argument(
+        "--low",
+        type=float,
+        default=1.0,
+        help="Lower percentile cutoff (0–100)",
+    )
+
+    parser.add_argument(
+        "--high",
+        type=float,
+        default=99.0,
+        help="Upper percentile cutoff (0–100)",
+    )
+
+    parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="Process directories recursively",
     )
 
     parser.add_argument(
@@ -44,7 +71,11 @@ def parse_args() -> argparse.Namespace:
 
 def configure_logging(verbosity: int) -> None:
     level = (
-        logging.WARNING if verbosity == 0 else logging.INFO if verbosity == 1 else logging.DEBUG
+        logging.WARNING
+        if verbosity == 0
+        else logging.INFO
+        if verbosity == 1
+        else logging.DEBUG
     )
 
     logging.basicConfig(
@@ -65,10 +96,22 @@ def main() -> int:
         logging.error("%s is not a directory.", src)
         return 1
 
+    if not (0 <= args.low < args.high <= 100):
+        logging.error("Invalid percentiles: require 0 <= low < high <= 100")
+        return 2
+
     logging.info("Input : %s", src)
     logging.info("Output: %s", dst)
+    logging.info("Percentiles: %.2f / %.2f", args.low, args.high)
 
-    processed = process_folder(src, dst, strength=args.strength)
+    processed = process_folder(
+        src,
+        dst,
+        strength=args.strength,
+        low_percentile=args.low,
+        high_percentile=args.high,
+        recursive=args.recursive,
+    )
 
     logging.info("Processed %d image(s).", processed)
     return 0

@@ -28,6 +28,11 @@ def autocontrast(
     if img.dtype != np.uint8:
         raise TypeError("Expected uint8 image")
 
+    if not (0 <= low_percentile < high_percentile <= 100):
+        raise ValueError(
+            "Percentiles must satisfy 0 <= low < high <= 100"
+        )
+
     img_f = img.astype(np.float32) / 255.0
     out = np.empty_like(img_f)
 
@@ -42,14 +47,14 @@ def autocontrast(
 
         ch = exposure.rescale_intensity(
             ch,
-            in_range=(lo, hi),  # type: ignore
-            out_range=(0.0, 1.0),  # type: ignore
+            in_range=(lo, hi),
+            out_range=(0.0, 1.0),
         )
 
         ch = exposure.adjust_sigmoid(
             ch,
             cutoff=cutoff,
-            gain=gain,  # type: ignore
+            gain=gain,
         )
 
         out[..., c] = ch
@@ -77,7 +82,10 @@ def collect_images(src: Path, recursive: bool = False) -> list[Path]:
     """
     it = src.rglob("*") if recursive else src.iterdir()
 
-    return sorted(p for p in it if p.is_file() and p.suffix.lower() in IMAGE_EXTS)
+    return sorted(
+        p for p in it
+        if p.is_file() and p.suffix.lower() in IMAGE_EXTS
+    )
 
 
 # -------------------------
@@ -111,6 +119,8 @@ def process_folder(
     src: Path,
     dst: Path,
     strength: float = 1.0,
+    low_percentile: float = 1.0,
+    high_percentile: float = 99.0,
     recursive: bool = False,
 ) -> int:
     """
@@ -143,9 +153,14 @@ def process_folder(
                 continue
 
             if img.dtype != np.uint8:
-                img = (np.clip(img, 0, 255)).astype(np.uint8)
+                img = np.clip(img, 0, 255).astype(np.uint8)
 
-            out = autocontrast(img, gain=strength * 8.0)
+            out = autocontrast(
+                img,
+                low_percentile=low_percentile,
+                high_percentile=high_percentile,
+                gain=strength * 8.0,
+            )
 
             if same_folder:
                 backup = _make_backup(fpath)
