@@ -56,3 +56,17 @@ def test_invalid_ratio():
     
     with pytest.raises(ValueError, match="Ratio must be positive"):
         crop_to_ratio(img, -1.0)
+
+
+def test_crop_exact_dimensions():
+    # 200x100 image (w/h = 2.0), crop to 1.0 -> should be 100x100
+    img = make_image(100, 200)
+    cropped = crop_to_ratio(img, 1.0)
+    assert cropped.shape[0] == 100
+    assert cropped.shape[1] == 100
+
+    # 100x200 image (w/h = 0.5), crop to 1.0 -> should be 100x100
+    img = make_image(200, 100)
+    cropped = crop_to_ratio(img, 1.0)
+    assert cropped.shape[0] == 100
+    assert cropped.shape[1] == 100

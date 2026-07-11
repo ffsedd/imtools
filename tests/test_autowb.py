@@ -84,3 +84,31 @@ def test_process_folder(tmp_path: Path):
         assert out_img.ndim == 3
         assert out_img.shape[2] == 3
         assert out_img.dtype == np.uint8
+
+
+def test_autowb_wrong_dtype():
+    img = np.zeros((10, 10, 3), dtype=np.float32)
+    try:
+        autowb(img)
+        assert False, "Expected TypeError"
+    except TypeError:
+        pass
+
+
+def test_autowb_wrong_shape():
+    img = np.zeros((10, 10), dtype=np.uint8)
+    try:
+        autowb(img)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
+
+
+def test_autowb_not_enough_midtones():
+    # All white image (L=100) -> no midtones
+    img = np.full((100, 100, 3), 255, dtype=np.uint8)
+    try:
+        autowb(img)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
