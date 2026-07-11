@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import io
+
 from PIL import Image
-import pytest
 
 from imtools.jpgquality import extract_quantization_features, get_jpg_quality
 

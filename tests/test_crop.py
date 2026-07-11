@@ -50,10 +50,10 @@ def test_no_crop_needed():
 
 def test_invalid_ratio():
     img = make_image(100, 100)
-    
+
     with pytest.raises(ValueError, match="Ratio must be positive"):
         crop_to_ratio(img, 0)
-    
+
     with pytest.raises(ValueError, match="Ratio must be positive"):
         crop_to_ratio(img, -1.0)
 

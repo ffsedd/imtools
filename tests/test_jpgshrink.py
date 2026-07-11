@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 from PIL import Image
 
-from imtools.jpgshrink import shrink_jpg, find_jpg_files, shrink_jpg_folder
+from imtools.jpgshrink import find_jpg_files, shrink_jpg, shrink_jpg_folder
 
 
 def _make_jpg(path: Path, size=(100, 100), quality=95):

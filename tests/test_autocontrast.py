@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import numpy as np
-import pytest
 from pathlib import Path
 
-from imtools.autocontrast import autocontrast, collect_images, _make_backup, process_folder
+import numpy as np
+import pytest
+
+from imtools.autocontrast import _make_backup, autocontrast, collect_images, process_folder
 
 
 def test_autocontrast_basic():
@@ -54,6 +55,7 @@ def test_process_folder(tmp_path: Path):
     dst = tmp_path / "dst"
     img = np.random.randint(0, 255, (50, 50, 3), dtype=np.uint8)
     from skimage import io
+
     io.imsave(src / "test.jpg", img)
     count = process_folder(src, dst)
     assert count == 1

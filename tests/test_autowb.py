@@ -73,7 +73,7 @@ def test_process_folder(tmp_path: Path):
 
     dst = tmp_path / "out"
     result = process_folder(tmp_path, dst, strength=0.5, max_shift=10.0)
-    
+
     assert result == 2  # Should return count of processed images
 
     out_files = sorted(dst.glob("*.jpg"))
