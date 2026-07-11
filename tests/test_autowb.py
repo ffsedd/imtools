@@ -72,7 +72,9 @@ def test_process_folder(tmp_path: Path):
     io.imsave(tmp_path / "img2.jpg", img2)
 
     dst = tmp_path / "out"
-    process_folder(tmp_path, dst, strength=0.5, max_shift=10.0)
+    result = process_folder(tmp_path, dst, strength=0.5, max_shift=10.0)
+    
+    assert result == 2  # Should return count of processed images
 
     out_files = sorted(dst.glob("*.jpg"))
     assert len(out_files) == 2

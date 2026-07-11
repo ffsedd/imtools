@@ -19,6 +19,9 @@ def crop_to_ratio(img: np.ndarray, ratio: float = 1.25) -> np.ndarray:
     np.ndarray
         Cropped image
     """
+    if ratio <= 0:
+        raise ValueError(f"Ratio must be positive, got {ratio}")
+    
     h, w = img.shape[:2]
     current_ratio = w / h
     if np.isclose(current_ratio, ratio, atol=1e-3):

@@ -66,10 +66,10 @@ def classify_jpeg_quality(qsum: int, qvalue: int) -> int:
     sum_table = SUMS_2 if use_chroma_model else SUMS_1
 
     for quality in range(100):
-        if (qvalue < hash_table[quality]) and (qsum < sum_table[quality]):  # type: ignore
+        if (qvalue < hash_table[quality]) and (qsum < sum_table[quality]):
             continue
 
-        if (qvalue <= hash_table[quality]) and (qsum <= sum_table[quality]) or quality >= 50:  # type: ignore
+        if (qvalue <= hash_table[quality]) and (qsum <= sum_table[quality]) or quality >= 50:
             return quality + 1
 
         break

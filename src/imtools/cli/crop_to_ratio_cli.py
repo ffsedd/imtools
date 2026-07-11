@@ -49,22 +49,22 @@ def process_folder(src: Path, dst: Path, ratio: float) -> int:
         try:
             img = io.imread(fpath)
         except Exception:
-            logging.warning(f"Skipping {fpath.name}: cannot read")
+            logging.warning("Skipping %s: cannot read", fpath.name)
             continue
 
         if img.ndim not in (2, 3):
-            logging.warning(f"Skipping {fpath.name}: invalid image shape {img.shape}")
+            logging.warning("Skipping %s: invalid image shape %s", fpath.name, img.shape)
             continue
 
         try:
             cropped = crop_to_ratio(img, ratio)
         except Exception as e:
-            logging.warning(f"Skipping {fpath.name}: crop failed ({e})")
+            logging.warning("Skipping %s: crop failed (%s)", fpath.name, e)
             continue
 
         io.imsave(dst / fpath.name, cropped)
         processed += 1
-        logging.info(f"Saved {fpath.name}, shape {cropped.shape}")
+        logging.info("Saved %s, shape %s", fpath.name, cropped.shape)
 
     return processed
 
@@ -80,9 +80,9 @@ def main() -> None:
     src = Path(args.src).resolve(strict=True)
     dst = Path(args.out).resolve()
 
-    logging.info(f"Cropping images from {src} → {dst} with ratio {args.ratio}")
+    logging.info("Cropping images from %s → %s with ratio %s", src, dst, args.ratio)
     count = process_folder(src, dst, args.ratio)
-    logging.info(f"Batch complete: {count} images processed.")
+    logging.info("Batch complete: %d images processed.", count)
 
 
 if __name__ == "__main__":

@@ -72,22 +72,31 @@ def process_folder(
     dst: Path,
     strength: float = 0.5,
     max_shift: float = 15.0,
-) -> None:
+) -> int:
     """
     Batch process all JPG images in a folder.
+
+    Returns
+    -------
+    int
+        Number of successfully processed images
     """
+    from .autocontrast import collect_images
+
     dst.mkdir(parents=True, exist_ok=True)
     fpaths = sorted(src.glob("*.jpg"))
-    logging.info(f"Processing files {fpaths}")
+    logging.info("Processing %d files", len(fpaths))
+    
+    processed = 0
     for fpath in fpaths:
         try:
             img = io.imread(fpath)
         except Exception:
-            logging.warning(f"Skipping {fpath.name}: cannot read")
+            logging.warning("Skipping %s: cannot read", fpath.name)
             continue
 
         if img.ndim != 3 or img.shape[2] != 3:
-            logging.warning(f"Skipping {fpath.name}: not RGB")
+            logging.warning("Skipping %s: not RGB", fpath.name)
             continue
 
         try:
@@ -97,7 +106,7 @@ def process_folder(
                 max_shift=max_shift,
             )
         except ValueError:
-            logging.warning(f"Skipping {fpath.name}: not enough midtones")
+            logging.warning("Skipping %s: not enough midtones", fpath.name)
             continue
 
         io.imsave(dst / fpath.name, corrected)
@@ -107,3 +116,6 @@ def process_folder(
             a_shift,
             b_shift,
         )
+        processed += 1
+    
+    return processed
